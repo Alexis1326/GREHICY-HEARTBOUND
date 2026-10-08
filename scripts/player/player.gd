@@ -103,11 +103,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_yaw_target -= event.relative.x * camera_sensitivity
 		_pitch_target -= event.relative.y * camera_sensitivity
 		_pitch_target = clampf(_pitch_target, deg_to_rad(camera_pitch_min), deg_to_rad(camera_pitch_max))
-	elif event.is_action_pressed("ui_cancel"):
-		if Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-		else:
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 func _physics_process(delta: float) -> void:
 	if _dead:
@@ -136,6 +131,7 @@ func _physics_process(delta: float) -> void:
 		_jumps_left -= 1
 		_coyote = 0.0
 		_jump_buffer = 0.0
+		AudioManager.play_sfx("jump")
 
 	# Cortar el salto al soltar: salto mas corto y mas preciso.
 	if Input.is_action_just_released("jump") and velocity.y > 0.0:
@@ -191,6 +187,7 @@ func _update_attack(delta: float) -> void:
 	elif Input.is_action_just_pressed("attack") and _attack_ready <= 0.0:
 		_attack_time = attack_duration
 		_attack_ready = attack_duration + attack_cooldown
+		AudioManager.play_sfx("spin")
 
 ## Reparte el golpe a todo lo que esté en el grupo "hit_by_spin" y esté a tiro.
 func _hit_spin_targets() -> void:
@@ -223,6 +220,8 @@ func take_damage(source: Vector3 = Vector3.ZERO) -> void:
 
 	if remaining <= 0:
 		_die()
+	else:
+		AudioManager.play_sfx("damage")
 
 func _fall_into_abyss() -> void:
 	if _dead:
@@ -232,12 +231,14 @@ func _fall_into_abyss() -> void:
 	else:
 		respawn()
 		_invuln = invulnerability_time
+		AudioManager.play_sfx("damage")
 
 func _die() -> void:
 	if _dead:
 		return
 	_dead = true
 	velocity = Vector3.ZERO
+	AudioManager.play_sfx("death")
 	await get_tree().create_timer(death_delay).timeout
 	get_tree().reload_current_scene()
 

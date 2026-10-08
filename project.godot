@@ -11,12 +11,13 @@ config_version=5
 [application]
 
 config/name="GREHICY HEARTBOUND"
-run/main_scene="res://scenes/main/Main.tscn"
+run/main_scene="res://scenes/ui/MainMenu.tscn"
 config/features=PackedStringArray("4.7")
 
 [autoload]
 
 GameState="*res://scripts/systems/game_state.gd"
+AudioManager="*res://scripts/systems/audio_manager.gd"
 
 [display]
 

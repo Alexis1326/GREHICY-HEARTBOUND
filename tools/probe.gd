@@ -8,9 +8,19 @@ var _player: Player
 var _camera: Camera3D
 var _hud: CanvasLayer
 var _nivel_completado := false
+## Progreso real del jugador, para devolverlo al terminar las pruebas.
+var _progreso_previo := {}
 
 func _ready() -> void:
 	GameState.level_completed.connect(_on_level_completed)
+	_progreso_previo = GameState.completed_levels.duplicate()
+
+	# --- FASE 3 ---
+	_test_catalogo()
+	_test_rutas()
+	await _test_menu_principal()
+	await _test_selector()
+	_test_guardado()
 
 	var main: PackedScene = load("res://scenes/main/Main.tscn")
 	add_child(main.instantiate())
@@ -25,6 +35,8 @@ func _ready() -> void:
 	# --- FASE 1 ---
 	_check_camera()
 	_test_hud_inicial()
+	await _test_pausa()
+	await _test_audio()
 	await _reposo()
 	await _test_movement()
 	await _test_jump()
@@ -55,6 +67,18 @@ func _ready() -> void:
 	_player.global_position = Vector3(0, 0.2, 24)
 	await _frames(15)
 	await _capturar_frame()
+
+	# Navegación real entre pantallas (último: crea escenas sueltas).
+	await _test_flujo()
+
+	# Devuelve el progreso del jugador tal como estaba antes de las pruebas.
+	GameState.completed_levels = _progreso_previo
+	GameState.save_progress()
+
+	# El audio se corta unos frames antes de salir: el servidor de audio solo
+	# suelta la reproducción en su siguiente tick (ver AudioManager.stop_all).
+	AudioManager.stop_all()
+	await _frames(3)
 
 	print("PROBE_DONE")
 	get_tree().quit()
@@ -97,6 +121,253 @@ func _nombres(nodo: Node) -> PackedStringArray:
 		salida.append(String(hijo.name))
 	return salida
 
+# --- FASE 3 -----------------------------------------------------------------
+
+func _test_catalogo() -> void:
+	var niveles := Levels.all()
+	var ids := PackedStringArray()
+	for nivel in niveles:
+		ids.append(String(nivel.get("id", "")))
+	var escena := Levels.scene_path("level_01")
+	print("PROBE catalogo niveles=", niveles.size(), " ids=", ids,
+		" escena_level01=", escena,
+		" existe=", not escena.is_empty() and ResourceLoader.exists(escena))
+
+func _test_rutas() -> void:
+	var ok := true
+	for ruta in [Routes.MENU, Routes.SELECTOR, Routes.JUEGO]:
+		if not ResourceLoader.exists(ruta):
+			ok = false
+			print("PROBE ruta_inexistente=", ruta)
+	print("PROBE rutas existen=", ok)
+
+func _test_menu_principal() -> void:
+	var escena: PackedScene = load(Routes.MENU)
+	if escena == null:
+		print("PROBE menu_principal carga=false")
+		return
+	var menu := escena.instantiate()
+	add_child(menu)
+	var titulo := menu.get_node_or_null("Centro/Titulo") as Label
+	var jugar := menu.get_node_or_null("Centro/Jugar") as Button
+	var salir := menu.get_node_or_null("Centro/Salir") as Button
+	var conectado := jugar != null and jugar.pressed.get_connections().size() > 0 \
+		and salir != null and salir.pressed.get_connections().size() > 0
+	print("PROBE menu_principal titulo=", titulo.text if titulo else "?",
+		" botones=", jugar != null and salir != null,
+		" botones_conectados=", conectado)
+	await _capturar_frame("C:/Users/ferney.naranjo/AppData/Local/Temp/opencode/f3_menu.png")
+	menu.queue_free()
+	await _frames(2)
+
+func _test_selector() -> void:
+	var escena: PackedScene = load(Routes.SELECTOR)
+	if escena == null:
+		print("PROBE selector carga=false")
+		return
+	var selector := escena.instantiate()
+	add_child(selector)
+	var lista := selector.get_node_or_null("Centro/Lista")
+	var tarjetas := lista.get_child_count() if lista != null else 0
+	var primera_ok := false
+	if tarjetas > 0:
+		var primera := lista.get_child(0) as Button
+		primera_ok = primera != null and not primera.disabled
+	var volver := selector.get_node_or_null("Centro/Volver") as Button
+	var conectado := volver != null and volver.pressed.get_connections().size() > 0
+	print("PROBE selector tarjetas=", tarjetas, " primera_desbloqueada=", primera_ok,
+		" volver_conectado=", conectado)
+	await _capturar_frame("C:/Users/ferney.naranjo/AppData/Local/Temp/opencode/f3_selector.png")
+	selector.queue_free()
+	await _frames(2)
+
+## Guardar, vaciar y volver a cargar: el progreso debe sobrevivir al reinicio.
+func _test_guardado() -> void:
+	GameState.completed_levels = {"level_01": 7}
+	GameState.save_progress()
+	GameState.completed_levels = {}
+	GameState.load_progress()
+	var recuperado := int(GameState.completed_levels.get("level_01", 0)) == 7
+	var desbloqueado := GameState.is_level_unlocked("level_01")
+	var desconocido := not GameState.is_level_unlocked("level_inexistente")
+	print("PROBE guardado recuperado=", recuperado,
+		" level01_desbloqueado=", desbloqueado,
+		" desconocido_bloqueado=", desconocido)
+
+## Esc pausa el árbol y lo reanuda: la única salida de un nivel en marcha.
+func _test_pausa() -> void:
+	var pausa := get_node_or_null("/root/Probe/Main/PauseMenu")
+	if pausa == null:
+		print("PROBE pausa existe=false")
+		return
+	_teclear_escape(true)
+	await _frames(2)
+	# ¿La tecla inyectada se reconoce como ui_cancel? (diagnóstico)
+	var accion_ok := Input.is_action_pressed("ui_cancel")
+	await _frames(1)
+	var abierta: bool = get_tree().paused and pausa.visible
+	_teclear_escape(false)
+	await _frames(2)
+	_teclear_escape(true)
+	await _frames(3)
+	var cerrada: bool = not get_tree().paused and not pausa.visible
+	_teclear_escape(false)
+	await _frames(2)
+	# Si la pausa se quedara abierta arrastraría el resto de pruebas.
+	var atascado := get_tree().paused
+	if atascado:
+		get_tree().paused = false
+		pausa.visible = false
+	print("PROBE pausa abre=", abierta, " cierra=", cerrada,
+		" accion_reconocida=", accion_ok,
+		" sin_atasco=", not atascado)
+
+func _teclear_escape(pulsada: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_ESCAPE
+	ev.physical_keycode = KEY_ESCAPE
+	ev.pressed = pulsada
+	Input.parse_input_event(ev)
+
+## Navegación real entre pantallas (change_scene_to_file de verdad).
+## La sonda deja de ser la escena actual para que el cambio no la libere.
+func _test_flujo() -> void:
+	var res := PackedStringArray()
+
+	var menu: Node = load(Routes.MENU).instantiate()
+	get_tree().root.add_child(menu)
+	get_tree().current_scene = menu
+	await _frames(2)
+
+	# 1) menú -> selector (botón Jugar)
+	menu.get_node("%Jugar").pressed.emit()
+	await _frames(5)
+	res.append("menu_a_selector=" + str(_en_escena(Routes.SELECTOR)))
+
+	# 2) selector -> juego (primera tarjeta desbloqueada)
+	var tarjetas: Array = []
+	var selector := get_tree().current_scene
+	if selector != null:
+		tarjetas = selector.get_node("%Lista").get_children()
+	res.append("selector_con_tarjetas=" + str(not tarjetas.is_empty()))
+	if not tarjetas.is_empty():
+		(tarjetas[0] as Button).pressed.emit()
+	await _frames(6)
+	var juego := get_tree().current_scene
+	res.append("selector_a_juego=" + str(_en_escena(Routes.JUEGO)))
+	res.append("nivel_cargado=" + str(
+		juego != null and juego.get_node_or_null("Level_01_Test") != null))
+
+	# 3) juego -> menú (botón "Menú principal" de la pausa)
+	var pausa: Node = null
+	if juego != null:
+		pausa = juego.get_node_or_null("PauseMenu")
+	res.append("pausa_presente=" + str(pausa != null))
+	if pausa != null:
+		pausa.get_node("%Menu").pressed.emit()
+		await _frames(5)
+	res.append("juego_a_menu=" + str(_en_escena(Routes.MENU)))
+
+	# 4) menú -> selector -> menú (botón Volver)
+	var menu2 := get_tree().current_scene
+	if menu2 != null:
+		menu2.get_node("%Jugar").pressed.emit()
+		await _frames(5)
+	var selector2 := get_tree().current_scene
+	if selector2 != null:
+		selector2.get_node("%Volver").pressed.emit()
+		await _frames(5)
+	res.append("volver_al_menu=" + str(_en_escena(Routes.MENU)))
+
+	# 5) menú -> selector -> juego -> selector (botón Continuar del banner)
+	var menu3 := get_tree().current_scene
+	if menu3 != null:
+		menu3.get_node("%Jugar").pressed.emit()
+		await _frames(5)
+	var selector3 := get_tree().current_scene
+	if selector3 != null:
+		var primera: Array = selector3.get_node("%Lista").get_children()
+		if not primera.is_empty():
+			(primera[0] as Button).pressed.emit()
+	await _frames(6)
+	var juego2 := get_tree().current_scene
+	var boton: Node = null
+	if juego2 != null:
+		boton = juego2.get_node_or_null("HUD/Root/Banner/Contenido/BannerContinue")
+	res.append("boton_banner=" + str(boton != null))
+	if boton != null:
+		(boton as Button).pressed.emit()
+		await _frames(5)
+	res.append("banner_a_selector=" + str(_en_escena(Routes.SELECTOR)))
+
+	# Limpieza: la sonda recupera su papel de escena actual.
+	var ultima := get_tree().current_scene
+	get_tree().current_scene = self
+	if ultima != null and ultima != self:
+		get_tree().root.remove_child(ultima)
+		ultima.free()
+
+	var fallos := 0
+	for r in res:
+		if r.ends_with("false"):
+			fallos += 1
+	print("PROBE flujo ", res, " fallos=", fallos)
+
+func _en_escena(ruta: String) -> bool:
+	var actual := get_tree().current_scene
+	return actual != null and String(actual.scene_file_path) == ruta
+
+# --- FASE 4 -----------------------------------------------------------------
+
+## Buses, carga de los 13 ficheros, reproducción de efectos y música
+## que debe seguir sonando con el árbol pausado.
+func _test_audio() -> void:
+	var buses := AudioServer.get_bus_index("Music") >= 0 \
+		and AudioServer.get_bus_index("SFX") >= 0
+
+	var faltan := 0
+	for key in AudioManager.SFX:
+		if not ResourceLoader.exists(AudioManager.SFX_DIR + String(AudioManager.SFX[key])):
+			faltan += 1
+	for key in AudioManager.MUSIC:
+		if not ResourceLoader.exists(AudioManager.MUSIC_DIR + String(AudioManager.MUSIC[key])):
+			faltan += 1
+
+	AudioManager.play_sfx("jump")
+	await _frames(2)
+	var sfx_ok := _sfx_sonando()
+
+	var musica := _reproductor_musica()
+	var pista := musica.stream.resource_path.get_file() if musica != null else "?"
+	var avanza_en_pausa := false
+	if musica != null:
+		var antes := musica.get_playback_position()
+		get_tree().paused = true
+		await _frames(8)
+		avanza_en_pausa = musica.get_playback_position() > antes
+		get_tree().paused = false
+
+	print("PROBE audio buses=", buses,
+		" ficheros_sfx=", AudioManager.SFX.size(),
+		" ficheros_musica=", AudioManager.MUSIC.size(),
+		" faltan=", faltan,
+		" sfx_reproducido=", sfx_ok,
+		" musica_pista=", pista,
+		" musica_avanza_en_pausa=", avanza_en_pausa,
+		" sin_pausa=", not get_tree().paused)
+
+func _sfx_sonando() -> bool:
+	for child in AudioManager.get_children():
+		if child is AudioStreamPlayer and child.bus == "SFX" and child.playing:
+			return true
+	return false
+
+func _reproductor_musica() -> AudioStreamPlayer:
+	for child in AudioManager.get_children():
+		if child is AudioStreamPlayer and child.bus == "Music" and child.playing:
+			return child
+	return null
+
 # --- FASE 1 -----------------------------------------------------------------
 
 func _check_camera() -> void:
@@ -131,7 +402,7 @@ func _test_movement() -> void:
 	await _frames(60)
 	var mientras: Vector3 = _player.global_position - antes
 	Input.action_release("move_forward")
-	await _frames(10)
+	await _frames(25)
 	print("PROBE avanzar delta=", mientras, " avanzo=", mientras.z < -0.5,
 		" frena=", Vector3(_player.velocity.x, 0, _player.velocity.z) == Vector3.ZERO)
 
@@ -146,7 +417,9 @@ func _test_jump() -> void:
 	var y0: float = _player.global_position.y
 	var pico := 0.0
 	Input.action_press("jump")
-	await _frames(25)
+	await _frames(3)
+	var salto_suena := _sfx_sonando()
+	await _frames(22)
 	Input.action_release("jump")
 	for i in 90:
 		await get_tree().physics_frame
@@ -155,6 +428,7 @@ func _test_jump() -> void:
 			break
 	print("PROBE salto altura_pico=", pico, " supera_escalones_1m=", pico > 1.6,
 		" en_suelo=", _player.is_on_floor(),
+		" sonido=", salto_suena,
 		" pos=", _player.global_position,
 		" seguro=", _player.get("_safe_position"),
 		" vidas=", GameState.lives)
@@ -367,12 +641,17 @@ func _test_fin_de_nivel() -> void:
 	_player.global_position = Vector3(fin.global_position.x, 0.2, fin.global_position.z)
 	await _frames(6)
 	var banner_oculto := true
+	var boton_ok := false
 	if _hud != null:
 		var banner := _hud.get_node_or_null("Root/Banner")
 		if banner != null:
 			banner_oculto = banner.visible
+		var boton := _hud.get_node_or_null("Root/Banner/Contenido/BannerContinue") as Button
+		boton_ok = boton != null and boton.pressed.get_connections().size() > 0
 	print("PROBE fin_nivel completado=", _nivel_completado,
-		" progreso=", GameState.progress, " banner_visible=", banner_oculto)
+		" progreso=", GameState.progress, " banner_visible=", banner_oculto,
+		" boton_continuar=", boton_ok,
+		" guardado=", GameState.completed_levels.get("level_01", -1))
 
 # --- utilidades -------------------------------------------------------------
 
@@ -390,8 +669,9 @@ func _pulsar_ataque() -> void:
 	Input.action_press("attack")
 	await _frames(3)
 	var girando := _player.is_spinning()
+	var sonido := _sfx_sonando()
 	Input.action_release("attack")
-	print("PROBE ataque listo_antes=", listo, " girando=", girando)
+	print("PROBE ataque listo_antes=", listo, " girando=", girando, " sonido=", sonido)
 
 ## Espera a que esté disponible y luego activa el giro.
 func _girar() -> void:

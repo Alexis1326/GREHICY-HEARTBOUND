@@ -36,6 +36,7 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	_taken = true
 	GameState.add_collectible(amount)
+	AudioManager.play_sfx("collectible")
 	set_deferred("monitoring", false)
 
 	var visual := get_node_or_null("Visual")

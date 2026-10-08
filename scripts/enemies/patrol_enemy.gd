@@ -124,6 +124,7 @@ func hit_by_spin(source: Vector3 = Vector3.ZERO) -> void:
 	if _dead:
 		return
 	_dead = true
+	AudioManager.play_sfx("enemy_die")
 	set_deferred("collision_layer", 0)
 	set_deferred("collision_mask", 0)
 

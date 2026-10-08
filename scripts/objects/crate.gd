@@ -23,6 +23,7 @@ func hit_by_spin(source: Vector3 = Vector3.ZERO) -> void:
 	if _broken:
 		return
 	_broken = true
+	AudioManager.play_sfx("bonus" if kind == Kind.BONUS else "crate_break")
 	if kind == Kind.BONUS:
 		GameState.restore_life()
 	_release_contents()

@@ -7,11 +7,46 @@ signal collectibles_changed(total: int)
 signal progress_changed(value: float)
 signal level_completed(level_id: String)
 
+const PROGRESS_PATH := "user://progress.cfg"
+
 var max_lives := 3
 var lives := 3
 var collectibles := 0
 var progress := 0.0
 var level_id := ""
+
+## Niveles completados: id -> coleccionables de su mejor partida.
+var completed_levels := {}
+
+func _ready() -> void:
+	load_progress()
+
+## El selector llama a esto antes de cambiar de escena.
+func select_level(id: String) -> void:
+	level_id = id
+
+## Desbloqueado si es el primer nivel del catálogo o si el anterior
+## ya está completado.
+func is_level_unlocked(id: String) -> bool:
+	if Levels.index_of(id) < 0:
+		return false
+	var previous := Levels.previous_id(id)
+	return previous.is_empty() or completed_levels.has(previous)
+
+func save_progress() -> void:
+	var cfg := ConfigFile.new()
+	for id in completed_levels:
+		cfg.set_value(id, "coleccionables", int(completed_levels[id]))
+	if cfg.save(PROGRESS_PATH) != OK:
+		push_warning("No se pudo guardar el progreso: " + PROGRESS_PATH)
+
+func load_progress() -> void:
+	completed_levels = {}
+	var cfg := ConfigFile.new()
+	if cfg.load(PROGRESS_PATH) != OK:
+		return  # primera partida: todavía no hay archivo
+	for id in cfg.get_sections():
+		completed_levels[id] = int(cfg.get_value(id, "coleccionables", 0))
 
 ## Llamar al crear la escena del nivel: reinicia la partida de ese nivel.
 func start_level(id: String) -> void:
@@ -52,4 +87,6 @@ func complete_level(id: String) -> void:
 		return
 	progress = 1.0
 	progress_changed.emit(1.0)
+	completed_levels[id] = maxi(int(completed_levels.get(id, 0)), collectibles)
+	save_progress()
 	level_completed.emit(id)

@@ -23,4 +23,5 @@ func _on_body_entered(body: Node3D) -> void:
 	if _done or not body.is_in_group("player"):
 		return
 	_done = true
+	AudioManager.play_sfx("level_complete")
 	GameState.complete_level(level_id)

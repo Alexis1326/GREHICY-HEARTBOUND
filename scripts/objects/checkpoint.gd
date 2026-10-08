@@ -16,6 +16,7 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	_activated = true
 	body.set_checkpoint(global_position)
+	AudioManager.play_sfx("checkpoint")
 	_announce()
 
 ## Pinta la marca de verde y hace un rebote: retroalimentación visible.

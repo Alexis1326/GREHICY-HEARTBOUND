@@ -1,0 +1,8 @@
+[
+  {
+    "id": "level_01",
+    "titulo": "Primeros pasos",
+    "mundo": 1,
+    "escena": "res://scenes/levels/Level_01_Test.tscn"
+  }
+]

@@ -14,6 +14,7 @@ const HEART_OFF := preload("res://assets/textures/heart_empty.png")
 @onready var _progress_text: Label = %ProgressText
 @onready var _banner: PanelContainer = %Banner
 @onready var _banner_text: Label = %BannerText
+@onready var _banner_continue: Button = %BannerContinue
 
 var _hearts: Array[TextureRect] = []
 
@@ -26,6 +27,8 @@ func _ready() -> void:
 	GameState.level_completed.connect(_on_level_completed)
 
 	_banner.visible = false
+	_banner_continue.pressed.connect(_on_continue_pressed)
+	AudioManager.attach_button_sounds(self)
 	_render_lives(GameState.lives)
 	_collectibles.text = str(GameState.collectibles)
 	_render_progress(GameState.progress)
@@ -56,6 +59,10 @@ func _render_progress(value: float) -> void:
 
 func _on_level_completed(_level_id: String) -> void:
 	_banner.visible = true
-	_banner_text.text = "¡NIVEL COMPLETADO!\n\nColeccionables: %d\nVidas restantes: %d" % [
+	_banner_text.text = "¡NIVEL COMPLETADO!\nColeccionables: %d   Vidas: %d" % [
 		GameState.collectibles, GameState.lives
 	]
+
+## Al terminar se vuelve al selector de niveles (el progreso ya está guardado).
+func _on_continue_pressed() -> void:
+	get_tree().change_scene_to_file(Routes.SELECTOR)

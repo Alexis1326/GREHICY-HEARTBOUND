@@ -1,0 +1,103 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/pause_menu.gd" id="1_pausa"]
+
+[sub_resource type="StyleBoxFlat" id="sb_caja"]
+content_margin_left = 30.0
+content_margin_top = 26.0
+content_margin_right = 30.0
+content_margin_bottom = 26.0
+bg_color = Color(0.05, 0.07, 0.12, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.83, 0.35, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="sb_boton"]
+content_margin_left = 20.0
+content_margin_top = 10.0
+content_margin_right = 20.0
+content_margin_bottom = 10.0
+bg_color = Color(0.1, 0.13, 0.2, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.83, 0.35, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="PauseMenu" type="Control"]
+process_mode = 3
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_pausa")
+
+[node name="Oscuro" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="Caja" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -190.0
+offset_top = -150.0
+offset_right = 190.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("sb_caja")
+
+[node name="Contenido" type="VBoxContainer" parent="Caja"]
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="Titulo" type="Label" parent="Caja/Contenido"]
+theme_override_colors/font_color = Color(1, 0.93, 0.75, 1)
+theme_override_font_sizes/font_size = 32
+text = "PAUSA"
+horizontal_alignment = 1
+
+[node name="Continuar" type="Button" parent="Caja/Contenido"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+theme_override_colors/font_color = Color(0.93, 0.96, 1, 1)
+theme_override_colors/font_hover_color = Color(0.06, 0.08, 0.13, 1)
+theme_override_colors/font_focus_color = Color(0.06, 0.08, 0.13, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("sb_boton")
+theme_override_styles/hover = SubResource("sb_caja")
+theme_override_styles/pressed = SubResource("sb_caja")
+theme_override_styles/focus = SubResource("sb_caja")
+text = "Continuar"
+
+[node name="Menu" type="Button" parent="Caja/Contenido"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 54)
+theme_override_colors/font_color = Color(0.93, 0.96, 1, 1)
+theme_override_colors/font_hover_color = Color(0.06, 0.08, 0.13, 1)
+theme_override_colors/font_focus_color = Color(0.06, 0.08, 0.13, 1)
+theme_override_font_sizes/font_size = 22
+theme_override_styles/normal = SubResource("sb_boton")
+theme_override_styles/hover = SubResource("sb_caja")
+theme_override_styles/pressed = SubResource("sb_caja")
+theme_override_styles/focus = SubResource("sb_caja")
+text = "Menú principal"

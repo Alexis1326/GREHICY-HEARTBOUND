@@ -13,7 +13,7 @@ identidad, arte y textos propios: no se usan recursos de juegos existentes.
 ## Cómo abrirlo
 
 1. Godot → *Import* → seleccionar `project.godot`.
-2. Abrir `scenes/main/Main.tscn` y pulsar **F5**.
+2. Pulsar **F5**: el juego arranca en el menú principal.
 
 ## Controles
 
@@ -23,23 +23,33 @@ identidad, arte y textos propios: no se usan recursos de juegos existentes.
 | Saltar              | Espacio                   |
 | Ataque giratorio    | J o clic izquierdo        |
 | Cámara              | Ratón (arrastrar)         |
-| Capturar/soltar ratón | Esc                     |
+| Pausa               | Esc                       |
+| Capturar/soltar ratón | Esc (al pausar/despausar) |
 
 ## Estructura
 
 ```
 scenes/   escenas por dominio: player, enemies, objects, levels, main, ui
 scripts/  lógica por dominio:  player, enemies, objects, levels, systems, ui
-assets/   texturas y (más adelante) modelos, animaciones y audio
-data/     contenido editable: recuerdos, diálogos, mensaje final, niveles
+assets/   texturas, audio y (más adelante) modelos y animaciones
+data/     contenido editable: recuerdos, diálogos, mensaje final y catálogo de niveles
 tools/    sonda de pruebas automatizadas (probe)
 ```
+
+El catálogo de niveles vive en `data/levels.json`: añadir un mundo es editar ese
+fichero, el selector de niveles se construye solo.
+
+El audio también es propio: los efectos y las pistas son WAV generados desde el
+proyecto (`assets/audio/`) y se reproducen desde el autoload `AudioManager`,
+que reparte el sonido en dos buses: `Music` y `SFX`.
 
 ## Fases
 
 - ✅ **FASE 1** — Movimiento, salto y cámara en tercera persona.
 - ✅ **FASE 2** — Ataque giratorio, enemigos, cajas, coleccionables, HUD, checkpoint y fin de nivel.
-- 🚧 **FASE 3** — Menú principal, selector de niveles y guardado de progreso.
+- ✅ **FASE 3** — Menú principal, selector de niveles, pausa y guardado de progreso (`user://progress.cfg`).
+- ✅ **FASE 4** — Audio: 11 efectos de sonido, música de menú y de nivel con fundido
+  cruzado y bucle, buses `Music`/`SFX` y clics en todos los botones.
 
 ## Pruebas automáticas
 
