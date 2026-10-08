@@ -1,0 +1,10 @@
+{
+  "evento_humor_01": {
+    "question": "¿Qué quieres hacer?",
+    "options": [
+      { "id": "ayudar", "text": "❤️ Ayudar" },
+      { "id": "broma", "text": "😂 Hacer una broma" },
+      { "id": "seguir", "text": "🚶 Continuar" }
+    ]
+  }
+}

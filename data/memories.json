@@ -1,0 +1,27 @@
+{
+  "first_trip": {
+    "title": "Recuerdo desbloqueado: Nuestro primer viaje ❤️",
+    "type": "photo",
+    "description": "Una tarde especial en la que todo empezó a sentirse como hogar."
+  },
+  "ten_years": {
+    "title": "Recuerdo desbloqueado: 10 años de historia ✨",
+    "type": "story",
+    "description": "Diez años de risas, viajes, música y amor que creció paso a paso."
+  },
+  "june13_proposal": {
+    "title": "Recuerdo desbloqueado: 13 de junio, doble promesa 💍🎂",
+    "type": "special",
+    "description": "El día de tu cumpleaños también fue el día en que te pedí matrimonio."
+  },
+  "nov26_eleven": {
+    "title": "Recuerdo desbloqueado: 26 de noviembre, 11 años ❤️",
+    "type": "milestone",
+    "description": "Un nuevo aniversario para celebrar todo lo vivido y lo que viene."
+  },
+  "music_night": {
+    "title": "Recuerdo desbloqueado: Nuestra canción 🎵",
+    "type": "audio",
+    "description": "Ese momento en que una canción dijo todo sin palabras."
+  }
+}
